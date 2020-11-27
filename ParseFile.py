@@ -1,6 +1,6 @@
 import requests
 from config import API_KEY1
-
+from lxml import html
 
 def check_quota(json_data):
     try:
@@ -59,7 +59,7 @@ def get_video_by_channelID(API_KEY, channel_id):
     except:
         return False
     var = requests.get(
-        f"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=50&playlistId={playlists_id}&key={API_KEY}")
+        f"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=49&playlistId={playlists_id}&key={API_KEY}")
     if var.request == 403:
         if check_quota(var.json()):
             if API_KEY == API_KEY1:
@@ -72,6 +72,9 @@ def get_video_by_channelID(API_KEY, channel_id):
             id.append(i['contentDetails']['videoId'])
     except:
         return False
+    stream_video = get_live_stream(channel_id)
+    if stream_video:
+        id.append(stream_video)
     return id
 
 
@@ -90,3 +93,19 @@ def get_name_channel_by_id(API_KEY, channel_id):
     except:
         return False
     return name
+
+
+def get_live_stream(channel_id):
+    try:
+        page = requests.get(f"https://www.youtube.com/embed/live_stream?channel={channel_id}")
+        if page.status_code == 200:
+            tree = html.fromstring(page.content)
+            links = tree.xpath('//link[@rel="canonical"]')
+            if links:
+                return links[0].attrib['href'].split("watch?v=")[1]
+            else:
+                return False
+        else:
+            return False
+    except:
+        return False
